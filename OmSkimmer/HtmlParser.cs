@@ -166,7 +166,7 @@ namespace OmSkimmer
 
                         // Drill down to the product information.
                         // There should be a single section of containing an attribute MainProductSectionAttribute. Let's make sure there is
-                        HtmlNode productMainNode = this.GetSingleDescendantByTypeWithAttribute(
+                        HtmlNode productMainNode = this.GetFirstDescendantByTypeWithAttribute(
                             productPage.DocumentNode, "section", MainProductSectionAttribute); 
                         if (productMainNode == null)    // if we can't find the main product div, move on, there's nothing we can do
                         {
@@ -457,6 +457,25 @@ namespace OmSkimmer
         }
 
         /// <summary>
+        /// Gets the first descendant of the given node that has the given type and contains the given attribute, regardless of the attribute's value.
+        /// </summary>
+        /// <param name="parentNode">Parent node</param>
+        /// <param name="descendantType">HTML tag type to look for</param>
+        /// <param name="attributeName">Attribute name to look for</param>
+        /// <returns>First descendant of the given node matching the supplied values. If a descendant is not found, returns null</returns>
+        private HtmlNode GetFirstDescendantByTypeWithAttribute(HtmlNode parentNode, String descendantType, String attributeName)
+        {
+            try
+            {
+                return parentNode.Descendants(descendantType).FirstOrDefault(d => d.Attributes.Contains(attributeName));
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Gets all descendants of the given node that have the given type and class name
         /// </summary>
         /// <param name="parentNode">Parent node</param>
@@ -514,7 +533,51 @@ namespace OmSkimmer
             HtmlNode descriptionNode = this.GetSingleDescendantByTypeAndAttribute(productPage.DocumentNode, "div",
                 "class", ProductDescriptionClassName);
 
-            return descriptionNode == null ? String.Empty : descriptionNode.InnerHtml.Trim();
+            // Anchor tag removal adapted from https://stackoverflow.com/questions/12787449/html-agility-pack-removing-unwanted-tags-without-removing-content
+            if (descriptionNode == null)
+            {
+                return String.Empty;
+            }
+
+            HtmlNodeCollection tryGetNodes = descriptionNode.SelectNodes("./*|./text()");
+
+            if (tryGetNodes == null || !tryGetNodes.Any())
+            {
+                return descriptionNode.InnerHtml;
+            }
+
+            Queue<HtmlNode> nodes = new Queue<HtmlNode>(tryGetNodes);
+
+            while (nodes.Count > 0)
+            {
+                HtmlNode node = nodes.Dequeue();
+                HtmlNode parentNode = node.ParentNode;
+
+                HtmlNodeCollection childNodes = node.SelectNodes("./*|./text()");
+
+                if (childNodes != null)
+                {
+                    foreach (HtmlNode child in childNodes)
+                    {
+                        nodes.Enqueue(child);
+                    }
+                }
+
+                if (node.Name.Equals("a", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    if (childNodes != null)
+                    {
+                        foreach (HtmlNode child in childNodes)
+                        {
+                            parentNode.InsertBefore(child, node);
+                        }
+                    }
+
+                    parentNode.RemoveChild(node);
+                }
+            }
+
+            return descriptionNode.InnerHtml;
         }
 
         /// <summary>
