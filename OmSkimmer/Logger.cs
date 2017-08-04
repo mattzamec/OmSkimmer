@@ -217,6 +217,10 @@ namespace OmSkimmer
             //prm_pricing_unit VARCHAR(50),
             //prm_modified DATETIME,
             //prm_is_unlisted BOOLEAN
+
+            // Unlist all products that were not touched by this import
+            this.SqlStream.WriteLine("UPDATE kvfc_products SET confirmed = 0 WHERE producer_id IN (SELECT producer_id FROM kvfc_producers WHERE IFNULL(is_bulk, 0) = 1) AND modified < '{0}'",
+                startDate.ToString("yyyy-MM-dd HH:mm:ss"));
         }
         
         #endregion Methods
