@@ -201,6 +201,19 @@ namespace OmSkimmer
 
         private void WriteProductsToSql(List<Product> productList)
         {
+            // Wipe out existing bulk products without prior basket orders
+            this.SqlStream.WriteLine(@"DELETE FROM kvfc_products 
+WHERE IFNULL(kvfc_products.bulk_sku, '') != ''
+AND kvfc_products.pvid NOT IN (
+	SELECT x.pvid
+    FROM (
+		SELECT kvfc_products.pvid
+		FROM kvfc_products 
+		JOIN kvfc_basket_items USING (product_id, product_version)
+		WHERE IFNULL(bulk_sku, '') != ''
+	) AS x
+);");
+
             foreach (Product product in productList.OrderBy(p => p.OmId).ThenBy(p => p.VariantId))
             {
                 this.SqlStream.WriteLine("CALL {0}('{1}', '{2}', '{3}', '{4}', {5}, '{6}', '{7}', {8});",
@@ -219,7 +232,7 @@ namespace OmSkimmer
             //prm_is_unlisted BOOLEAN
 
             // Unlist all products that were not touched by this import
-            this.SqlStream.WriteLine("UPDATE kvfc_products SET confirmed = 0 WHERE producer_id IN (SELECT producer_id FROM kvfc_producers WHERE IFNULL(is_bulk, 0) = 1) AND modified < '{0}'",
+            this.SqlStream.WriteLine("UPDATE kvfc_products SET confirmed = 0, listing_auth_type = 'unlisted' WHERE producer_id IN (SELECT producer_id FROM kvfc_producers WHERE IFNULL(is_bulk, 0) = 1) AND modified < '{0}'",
                 startDate.ToString("yyyy-MM-dd HH:mm:ss"));
         }
         
