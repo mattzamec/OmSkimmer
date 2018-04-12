@@ -218,6 +218,18 @@ namespace OmSkimmer
                      }
                   }
 
+                  // In addition to these, there is a red banner element that pops up at the top of the page for discontinued or out-of-stock items/sizes.
+                  if (!isProductInStock.HasValue || !isProductInStock.Value) {
+                     HtmlNode headerWithAlert = productPage.DocumentNode.Descendants("header")
+                        .FirstOrDefault(headerNode => headerNode.Descendants("div").Any(x => x.GetClasses().Contains("alert-message")));
+                     if (headerWithAlert != null)
+                     {
+                        string alertMessage = headerWithAlert.Descendants("div").First(x => x.GetClasses().Contains("alert-message")).InnerText;
+                        if (alertMessage.ToLower().Contains("discontinued") || alertMessage.ToLower().Contains("out of stock"))
+                           isProductInStock = false;
+                     }
+                  }
+
                   // OK. Now let's see if there are any radio buttons for different sizes
                   HtmlNode sizeRadioMainDivNode = this.GetSingleDescendantByTypeWithAttribute(productMainNode, "div", SizeDivAttribute);
                   List<HtmlNode> sizeRadioNodeList = sizeRadioMainDivNode == null ? new List<HtmlNode>() :
