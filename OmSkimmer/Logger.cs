@@ -6,203 +6,205 @@ using System.Linq;
 
 namespace OmSkimmer
 {
-    public class Logger : IDisposable
-    {
-        #region Members
+   public class Logger : IDisposable
+   {
+      #region Members
 
-        private Boolean disposed = false;
-        private readonly Shared.Options options;
-        private readonly DateTime startDate;
+      private Boolean disposed = false;
+      private readonly Shared.Options options;
+      private readonly DateTime startDate;
 
-        private String outputRoot;
-        private String OutputRoot
-        {
-            get
+      private String outputRoot;
+      private String OutputRoot
+      {
+         get
+         {
+            if (String.IsNullOrEmpty(this.outputRoot))
             {
-                if (String.IsNullOrEmpty(this.outputRoot))
-                {
-                    const String debugFolder = @"\OmSkimmer\bin\Debug\";
-                    this.outputRoot = AppDomain.CurrentDomain.BaseDirectory;
-                    if (this.outputRoot.EndsWith(debugFolder, StringComparison.OrdinalIgnoreCase))
-                    {
-                        this.outputRoot = this.outputRoot.Substring(0,
-                            this.outputRoot.IndexOf(debugFolder, StringComparison.OrdinalIgnoreCase));
-                    }
-                    this.outputRoot = Path.Combine(this.outputRoot, DateTime.Today.ToString("yyyy_MM_dd"));
+               const String debugFolder = @"\OmSkimmer\bin\Debug\";
+               this.outputRoot = AppDomain.CurrentDomain.BaseDirectory;
+               if (this.outputRoot.EndsWith(debugFolder, StringComparison.OrdinalIgnoreCase))
+               {
+                  this.outputRoot = this.outputRoot.Substring(0,
+                      this.outputRoot.IndexOf(debugFolder, StringComparison.OrdinalIgnoreCase));
+               }
+               this.outputRoot = Path.Combine(this.outputRoot, DateTime.Today.ToString("yyyy_MM_dd"));
 
-                    if (!Directory.Exists(this.outputRoot))
-                    {
-                        Directory.CreateDirectory(this.outputRoot);
-                    }
-                }
-
-                return this.outputRoot;
+               if (!Directory.Exists(this.outputRoot))
+               {
+                  Directory.CreateDirectory(this.outputRoot);
+               }
             }
-        }
 
-        private String logFileName;
-        private String LogFileName
-        {
-            get
+            return this.outputRoot;
+         }
+      }
+
+      private String logFileName;
+      private String LogFileName
+      {
+         get
+         {
+            if (String.IsNullOrEmpty(this.logFileName))
             {
-                if (String.IsNullOrEmpty(this.logFileName))
-                {
-                    String logFolder = Path.Combine(this.OutputRoot, "Logs");
-                    if (!Directory.Exists(logFolder))
-                    {
-                        Directory.CreateDirectory(logFolder);
-                    }
+               String logFolder = Path.Combine(this.OutputRoot, "Logs");
+               if (!Directory.Exists(logFolder))
+               {
+                  Directory.CreateDirectory(logFolder);
+               }
 
-                    this.logFileName = Path.Combine(logFolder,
-                        String.Format("log_{0}.txt", DateTime.Now.ToString("HH_mm_ss")));
-                }
-
-                return this.logFileName;
+               this.logFileName = Path.Combine(logFolder,
+                   String.Format("log_{0}.txt", DateTime.Now.ToString("HH_mm_ss")));
             }
-        }
-        
-        private StreamWriter logStream;
-        private StreamWriter LogStream
-        {
-            get
-            {
-                return this.logStream ?? (this.logStream = File.AppendText(this.LogFileName));
-            }
-        }
 
-        private String CsvFileName
-        {
-            get
-            {
-                return Path.Combine(this.OutputRoot, "OmPriceList.csv");
-            }
-        }
+            return this.logFileName;
+         }
+      }
 
-        private StreamWriter csvStream;
-        private StreamWriter CsvStream
-        {
-            get
-            {
-                return this.csvStream ?? (this.csvStream = File.CreateText(this.CsvFileName));
-            }
-        }
+      private StreamWriter logStream;
+      private StreamWriter LogStream
+      {
+         get
+         {
+            return this.logStream ?? (this.logStream = File.AppendText(this.LogFileName));
+         }
+      }
 
-        private String SqlFileName
-        {
-            get
-            {
-                return Path.Combine(this.OutputRoot, "OmProducts.sql");
-            }
-        }
+      private String CsvFileName
+      {
+         get
+         {
+            return Path.Combine(this.OutputRoot, "OmPriceList.csv");
+         }
+      }
 
-        private StreamWriter sqlStream;
-        private StreamWriter SqlStream
-        {
-            get
-            {
-                return this.sqlStream ?? (this.sqlStream = File.CreateText(this.SqlFileName));
-            }
-        }
+      private StreamWriter csvStream;
+      private StreamWriter CsvStream
+      {
+         get
+         {
+            return this.csvStream ?? (this.csvStream = File.CreateText(this.CsvFileName));
+         }
+      }
 
-        #endregion Members
+      private String SqlFileName
+      {
+         get
+         {
+            return Path.Combine(this.OutputRoot, "OmProducts.sql");
+         }
+      }
 
-        #region Constructors
+      private StreamWriter sqlStream;
+      private StreamWriter SqlStream
+      {
+         get
+         {
+            return this.sqlStream ?? (this.sqlStream = File.CreateText(this.SqlFileName));
+         }
+      }
 
-        /// <summary>
-        /// Constructor accepts output options
-        /// </summary>
-        /// <param name="outputOptions">Output options</param>
-        public Logger(Shared.Options outputOptions)
-        {
-            this.startDate = DateTime.Now;
-            this.options = outputOptions;
-            this.WriteLineToLogFile("********** LOGGING STARTED: {0} **************", this.startDate.ToString("F"));
-        }
+      #endregion Members
 
-        #endregion Constructors
+      #region Constructors
 
-        #region Methods
+      /// <summary>
+      /// Constructor accepts output options
+      /// </summary>
+      /// <param name="outputOptions">Output options</param>
+      public Logger(Shared.Options outputOptions)
+      {
+         this.startDate = DateTime.Now;
+         this.options = outputOptions;
+         this.WriteLineToLogFile("********** LOGGING STARTED: {0} **************", this.startDate.ToString("F"));
+      }
 
-        public void WriteToConsole(String message, params Object[] formatArgs)
-        {
-            Console.Write(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
-        }
+      #endregion Constructors
 
-        public void WriteLineToConsole(String message, params Object[] formatArgs)
-        {
-            Console.WriteLine(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
-        }
+      #region Methods
 
-        public void OverwriteLineToConsole(String message, params Object[] formatArgs)
-        {
-            Console.Write("\r{0}", formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
-        }
+      public void WriteToConsole(String message, params Object[] formatArgs)
+      {
+         Console.Write(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
+      }
 
-        public void WriteToLogFile(String message, params Object[] formatArgs)
-        {
-            this.LogStream.Write(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
-        }
+      public void WriteLineToConsole(String message, params Object[] formatArgs)
+      {
+         Console.WriteLine(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
+      }
 
-        public void WriteLineToLogFile(String message, params Object[] formatArgs)
-        {
-            this.LogStream.WriteLine(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
-        }
+      public void OverwriteLineToConsole(String message, params Object[] formatArgs)
+      {
+         Console.Write("\r{0}", formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
+      }
 
-        public void WriteToConsoleAndLogFile(String message, params Object[] formatArgs)
-        {
-            this.WriteToConsole(message, formatArgs);
-            this.WriteToLogFile(message, formatArgs);
-        }
+      public void WriteToLogFile(String message, params Object[] formatArgs)
+      {
+         this.LogStream.Write(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
+      }
 
-        public void WriteLineToConsoleAndLogFile(String message, params Object[] formatArgs)
-        {
-            this.WriteLineToConsole(message, formatArgs);
-            this.WriteLineToLogFile(message, formatArgs);
-        }
+      public void WriteLineToLogFile(String message, params Object[] formatArgs)
+      {
+         this.LogStream.WriteLine(formatArgs.Length > 0 ? String.Format(message, formatArgs) : message);
+      }
 
-        public void BlankLineInConsole()
-        {
-            Console.WriteLine();
-        }
+      public void WriteToConsoleAndLogFile(String message, params Object[] formatArgs)
+      {
+         this.WriteToConsole(message, formatArgs);
+         this.WriteToLogFile(message, formatArgs);
+      }
 
-        public void BlankLineInLogFile()
-        {
-            this.LogStream.WriteLine();
-        }
+      public void WriteLineToConsoleAndLogFile(String message, params Object[] formatArgs)
+      {
+         this.WriteLineToConsole(message, formatArgs);
+         this.WriteLineToLogFile(message, formatArgs);
+      }
 
-        public void BlankLineInConsoleAndLogFile()
-        {
-            this.BlankLineInConsole();
-            this.BlankLineInLogFile();
-        }
+      public void BlankLineInConsole()
+      {
+         Console.WriteLine();
+      }
 
-        public void WriteProductInfo(List<Product> productList)
-        {
-            if (this.options.HasFlag(Shared.Options.Excel))
-            {
-                this.WriteProductsToCsv(productList);
-            }
-            if (this.options.HasFlag(Shared.Options.Sql))
-            {
-                this.WriteProductsToSql(productList);
-            }
-        }
+      public void BlankLineInLogFile()
+      {
+         this.LogStream.WriteLine();
+      }
 
-        private void WriteProductsToCsv(List<Product> productList)
-        {
-            foreach (Product product in productList.OrderBy(p => p.Category).ThenBy(p => p.Name))
-            {
-                this.CsvStream.WriteLine("{0}, {1}, {2}{3}{4}, {5}, {6}, {7}",
-                    product.OmId, product.VariantId, product.Name.Replace(',', '?'),
-                    String.IsNullOrEmpty(product.Size) ? String.Empty : " ", product.Size.Replace(',', '?'), product.OmPrice.ToString("C"),
-                    product.Price.ToString("C"), product.IsInStock ? "In stock" : "OUT OF STOCK");
-            }
-        }
+      public void BlankLineInConsoleAndLogFile()
+      {
+         this.BlankLineInConsole();
+         this.BlankLineInLogFile();
+      }
 
-        private void WriteProductsToSql(List<Product> productList)
-        {
-            // Wipe out existing bulk products without prior basket orders
-            this.SqlStream.WriteLine(@"DELETE FROM kvfc_products 
+      public void WriteProductInfo(List<Product> productList)
+      {
+         if (this.options.HasFlag(Shared.Options.Excel))
+         {
+            this.WriteProductsToCsv(productList);
+         }
+         if (this.options.HasFlag(Shared.Options.Sql))
+         {
+            this.WriteProductsToSql(productList);
+         }
+      }
+
+      private void WriteProductsToCsv(List<Product> productList)
+      {
+         foreach (Product product in productList.OrderBy(p => p.Category).ThenBy(p => p.Name))
+         {
+            this.CsvStream.WriteLine("{0}, {1}, {2}, {3}, {4}",
+                product.OmId, product.VariantId, product.Name.Replace(',', '?'),
+                product.Price.ToString("C"), product.IsInStock ? "In stock" : "OUT OF STOCK");
+         }
+      }
+
+      private void WriteProductsToSql(List<Product> productList)
+      {
+         // ONE TIME ONLY: expand bulk_sku field to 40 characters
+         // this.SqlStream.WriteLine(@"ALTER TABLE kvfc_products MODIFY COLUMN bulk_sku VARCHAR(40);");
+
+         // Wipe out existing bulk products without prior basket orders
+         this.SqlStream.WriteLine(@"DELETE FROM kvfc_products 
 WHERE IFNULL(kvfc_products.bulk_sku, '') != ''
 AND kvfc_products.pvid NOT IN (
 	SELECT x.pvid
@@ -214,65 +216,70 @@ AND kvfc_products.pvid NOT IN (
 	) AS x
 );");
 
-            foreach (Product product in productList.OrderBy(p => p.OmId).ThenBy(p => p.VariantId))
+         // Note that consideration was given to also deleting subcategories without orders, but it appears (as of Aug 14, 2018) that there are past orders
+         // for all bulk subcategories, believe it or not.
+
+         // Do we need to process out-of-stock items?
+         foreach (Product product in productList.Where(p => p.IsInStock).OrderBy(p => p.OmId).ThenBy(p => p.VariantId))
+         {
+            this.SqlStream.WriteLine("CALL {0}('{1}', '{2}', '{3}', '{4}', {5}, '{6}', '{7}', {8});",
+                ConfigurationManager.AppSettings["SqlProcName"],
+                String.Format("{0}_{1}", product.OmId, product.VariantId), product.Name, 
+                product.Description.Replace("'", "''"), 
+                product.Category, product.Price.ToString("####.000"), product.Size, this.startDate.ToString("yyyy-MM-dd HH:mm:ss"), product.IsInStock ? "0" : "1");
+         }
+         // Proc parameters:
+         //prm_sku VARCHAR(20),
+         //prm_name VARCHAR(75),
+         //prm_description LONGTEXT,
+         //prm_category VARCHAR(50),
+         //prm_unit_price DECIMAL(9, 3),
+         //prm_pricing_unit VARCHAR(50),
+         //prm_modified DATETIME,
+         //prm_is_unlisted BOOLEAN
+
+         // Unlist all products that were not touched by this import
+         this.SqlStream.WriteLine("UPDATE kvfc_products SET confirmed = 0, listing_auth_type = 'unlisted' WHERE producer_id IN (SELECT producer_id FROM kvfc_producers WHERE IFNULL(is_bulk, 0) = 1) AND modified < '{0}'",
+             startDate.ToString("yyyy-MM-dd HH:mm:ss"));
+      }
+
+      #endregion Methods
+
+      #region IDisposable members
+
+      private void Dispose(bool disposing)
+      {
+         if (!disposed)
+         {
+            if (disposing)
             {
-                this.SqlStream.WriteLine("CALL {0}('{1}', '{2}', '{3}', '{4}', {5}, '{6}', '{7}', {8});",
-                    ConfigurationManager.AppSettings["SqlProcName"],
-                    String.Format("{0}_{1}", product.OmId, product.VariantId), product.Name, product.Description.Replace("'", "''"), product.Category, product.Price,
-                    product.Size, this.startDate.ToString("yyyy-MM-dd HH:mm:ss"), product.IsInStock ? "0" : "1");
+               if (this.LogStream != null)
+               {
+                  this.LogStream.Close();
+                  this.LogStream.Dispose();
+               }
+               if (this.CsvStream != null)
+               {
+                  this.CsvStream.Close();
+                  this.CsvStream.Dispose();
+               }
+               if (this.SqlStream != null)
+               {
+                  this.SqlStream.Close();
+                  this.SqlStream.Dispose();
+               }
             }
-            // Proc parameters:
-            //prm_sku VARCHAR(20),
-            //prm_name VARCHAR(75),
-            //prm_description LONGTEXT,
-            //prm_category VARCHAR(50),
-            //prm_unit_price DECIMAL(9, 3),
-            //prm_pricing_unit VARCHAR(50),
-            //prm_modified DATETIME,
-            //prm_is_unlisted BOOLEAN
 
-            // Unlist all products that were not touched by this import
-            this.SqlStream.WriteLine("UPDATE kvfc_products SET confirmed = 0, listing_auth_type = 'unlisted' WHERE producer_id IN (SELECT producer_id FROM kvfc_producers WHERE IFNULL(is_bulk, 0) = 1) AND modified < '{0}'",
-                startDate.ToString("yyyy-MM-dd HH:mm:ss"));
-        }
-        
-        #endregion Methods
+            disposed = true;
+         }
+      }
 
-        #region IDisposable members
+      public void Dispose()
+      {
+         this.Dispose(true);
+      }
 
-        private void Dispose(bool disposing)
-        {
-            if (!disposed)
-            {
-                if (disposing)
-                {
-                    if (this.LogStream != null)
-                    {
-                        this.LogStream.Close();
-                        this.LogStream.Dispose();
-                    }
-                    if (this.CsvStream != null)
-                    {
-                        this.CsvStream.Close();
-                        this.CsvStream.Dispose();
-                    }
-                    if (this.SqlStream != null)
-                    {
-                        this.SqlStream.Close();
-                        this.SqlStream.Dispose();
-                    }
-                }
+      #endregion IDisposable members
 
-                disposed = true;
-            }
-        }
-
-        public void Dispose()
-        {
-            this.Dispose(true);
-        }
-        
-        #endregion IDisposable members
-
-    }
+   }
 }
